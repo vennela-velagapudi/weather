@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Finder for Current Location</h1>
+        <div>
+            <button id="getCurrentLocation" onclick="getCurrentLocationWeather()">Get Current Location Weather</button>
+        </div>
+        <p id="output"></p>
+    </div>
+
+    <script>
+        function getWeather(lat = null, lon = null) {
+            let url;
+            if (lat && lon) {
+                url = `https://wttr.in/${lat},${lon}?format=j1`;
+            } else {
+                let city = document.getElementById("city").value.trim();
+                if (!city) {
+                    alert("Please enter a city name.");
+                    return;
+                }
+                url = `https://wttr.in/${city}?format=j1`;
+            }
+
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            let data = JSON.parse(xhr.responseText);
+                            let weather = data.current_condition[0];
+                            let region = data.nearest_area[0].region[0].value;
+                            let latitude = data.nearest_area[0].latitude;
+                            let longitude = data.nearest_area[0].longitude;
+                            let weatherDesc = weather.weatherDesc[0].value;
+                            
+                            document.getElementById("output").innerHTML = 
+                                `<b>Region:</b> ${region} <br>
+                                 <b>Latitude:</b> ${latitude} <br>
+                                 <b>Longitude:</b> ${longitude} <br>
+                                 <b>Temperature:</b> ${weather.temp_C}°C <br>
+                                 <b>Condition:</b> ${weatherDesc} <br>
+                                 <b>Wind Speed:</b> ${weather.windspeedKmph} km/h <br>`;
+                        } catch (e) {
+                            document.getElementById("output").innerHTML = 
+                                `<span class="error">Error parsing weather data.</span>`;
+                        }
+                    } else {
+                        document.getElementById("output").innerHTML = 
+                            `<span class="error">Error fetching weather data.</span>`;
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function getCurrentLocationWeather() {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser");
+                return;
+            }
+
+            document.getElementById("output").innerHTML = "Fetching location...";
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    getWeather(latitude, longitude);
+                },
+                (error) => {
+                    let errorMessage;
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = "Location access denied.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = "Location information unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = "Location request timed out.";
+                            break;
+                        default:
+                            errorMessage = "An unknown error occurred.";
+                    }
+                    document.getElementById("output").innerHTML = 
+                        `<span class="error">${errorMessage}</span>`;
+                }
+            );
+        }
+    </script>
+</body>
+</html>
